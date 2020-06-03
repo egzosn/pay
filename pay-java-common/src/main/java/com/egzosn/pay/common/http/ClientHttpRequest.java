@@ -22,6 +22,7 @@ import org.apache.http.util.EntityUtils;
 import java.io.*;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.Map;
 
 import static com.egzosn.pay.common.http.UriVariables.getMapToParameters;
@@ -295,6 +296,29 @@ public class ClientHttpRequest<T> extends HttpEntityEnclosingRequestBase impleme
 
         return toBean(entity, value);
 
+    }
+
+    public HttpResult handleSimpleResponse(HttpResponse response) throws IOException {
+        final StatusLine statusLine = response.getStatusLine();
+        final HttpEntity entity = response.getEntity();
+        String[] value = null;
+        if (null == entity.getContentType()){
+            value = new String[]{"application/x-www-form-urlencoded"};
+        }else {
+            value = entity.getContentType().getValue().split(";");
+        }
+        HttpResult simpleHttpResult = new HttpResult(statusLine.getStatusCode());
+        simpleHttpResult.setContentType(value[0]);
+        Header[] headers = response.getAllHeaders();
+        Map<String, String> returnHeaders = new HashMap<>();
+        for(Header header : headers){
+            returnHeaders.put(header.getName(),header.getValue());
+        }
+        simpleHttpResult.setHeaders(returnHeaders);
+        String responseString = EntityUtils.toString(entity, getDefaultCharset());
+        LOG.info("返回报文:" + responseString);
+        simpleHttpResult.setContent(responseString);
+        return simpleHttpResult;
     }
 
     /**
